@@ -1,18 +1,31 @@
 // lib/providers/theme_provider.dart
-// Remembers if the user wants light, dark, or the phone's setting.
-// For now it only lives in memory. In Step 14 we will save it with
-// shared_preferences so it is remembered after the app closes.
+// Light / dark / system. Saved with shared_preferences (Step 14).
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.system; // follow the phone by default
+  static const String _key = 'theme_mode';
 
+  ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
 
-  void setThemeMode(ThemeMode mode) {
-    if (_themeMode == mode) return; // nothing changed, no need to redraw
+  // Called once when the app starts.
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_key);
+    _themeMode = ThemeMode.values.firstWhere(
+      (m) => m.name == saved,
+      orElse: () => ThemeMode.system,
+    );
+    notifyListeners();
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (_themeMode == mode) return;
     _themeMode = mode;
-    notifyListeners(); // tells every widget that listens: "redraw yourself"
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, mode.name);
   }
 }
